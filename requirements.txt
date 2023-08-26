@@ -3,4 +3,5 @@ numpy
 scikit-learn
 tensorflow
 streamlit
+matplotlib
 
