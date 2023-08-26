@@ -16,6 +16,8 @@ df=pd.read_csv('./data/average_price_2023.csv')
 # Convert the 'Date' column to datetime format
 df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
 df.set_index('Date', inplace=True)
+df['Average_Price'] = pd.to_numeric(df['Average_Price'], errors='coerce')
+df.dropna(subset=['Average_Price'], inplace=True)
 
 
 dftype=pd.read_csv('./data/price_by_type_2023.csv')
@@ -381,7 +383,7 @@ elif navigation == "Overview of Housing Market":
         df_country = dfline[dfline['Region_Name'] == country]
 
         # Resample your data to get average price per year
-        df_yearly = df_country.resample('Y').mean()
+        df_yearly = df_country.resample('Y').mean(numeric_only=True)
 
         # Filter out data points that are not 5 years apart
         df_5year = df_yearly[df_yearly.index.year % 5 == 0]
@@ -412,7 +414,7 @@ elif navigation == "Overview of Housing Market":
         df_country = dfline[dfline['Region_Name'] == country]
 
         # Resample your data to get average price per year
-        df_yearly = df_country.resample('Y').mean()
+        df_yearly = df_country.resample('Y').mean(numeric_only=True)
 
         # Filter out data points that are not 5 years apart
         df_5year = df_yearly[df_yearly.index.year % 5 == 0]
