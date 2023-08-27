@@ -5,10 +5,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.dates import AutoDateLocator, AutoDateFormatter
+import matplotlib.dates as mdates
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
+
+
+#pip3 install tensorflow-cpu --no-cache-dir
 
 
 #--------Data import
@@ -29,6 +33,9 @@ dfsale=pd.read_csv('./data/sales_2023.csv')
 # Convert the 'Date' column to datetime format
 dfsale['Date'] = pd.to_datetime(dfsale['Date'], format='%d/%m/%Y')
 # print(df['Date'].max())
+
+dfinterest=pd.read_csv('./data/Bank_Interest_Rate.csv')
+
 #--------Data Import done
 
 # Sample dataset (You should replace this with your actual data)
@@ -371,7 +378,32 @@ if navigation == "Home":
 elif navigation == "Overview of Housing Market":
     st.header("Overview")
     # Display other line graphs
+
+    ##-----Bank Interest Line Graph
+    # Filter the data for the last 20 years
+    # Convert the 'Date' column to datetime
+    st.header("Interest Rate Over the Last 20 Years")
+    dfinterest['Date'] = pd.to_datetime(dfinterest['Date'])
+    df_last_20_years = dfinterest[dfinterest['Date'].dt.year >= 1983]
+
+    # Plot the data
+    fig, ax = plt.subplots(figsize=(15, 6))
+    ax.plot(df_last_20_years['Date'], df_last_20_years['New_rate'], marker='o', linestyle='-')
+    ax.set_title('Interest Rate Over the Last 20 Years')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Rate')
+
+    # Setting x-axis ticks for each year
+    ax.xaxis.set_major_locator(mdates.YearLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    plt.setp(ax.get_xticklabels(), rotation=45)
+
+    plt.grid(True)
+    plt.tight_layout()
+    st.pyplot(plt)
+    #--------End
     #-------------Country Wise
+    st.header("Average Price per 5 Years for Each Country")
     dfline=df
     # List of countries you're interested in
     countries = ['England', 'Wales', 'Scotland','Northern Ireland']
@@ -403,6 +435,7 @@ elif navigation == "Overview of Housing Market":
 
     #------------Capital of Each Country
     #Capital of Country Wise
+    st.header("Average Price per 5 Years for Each Capital")
     dfline=df
     # List of countries you're interested in
     countries = ['London', 'Cardiff', 'City of Edinburgh','Belfast']
@@ -428,6 +461,8 @@ elif navigation == "Overview of Housing Market":
     plt.grid(True)
     plt.legend()
     st.pyplot(plt)
+
+
 
     #------------------End
     ##-----------Prediction of English House Price
