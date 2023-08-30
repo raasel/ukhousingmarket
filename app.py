@@ -317,6 +317,7 @@ if navigation == "Home":
             transition: 0.3s; 
             width: 40%; 
             margin: 10px;
+            background-color: white;
             """
 
             container_style = """
