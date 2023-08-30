@@ -24,6 +24,11 @@ df['Average_Price'] = pd.to_numeric(df['Average_Price'], errors='coerce')
 df.dropna(subset=['Average_Price'], inplace=True)
 
 
+dfav=pd.read_csv('./data/average_price_2023.csv')
+# Convert the 'Date' column to datetime format
+dfav['Date'] = pd.to_datetime(dfav['Date'], format='%d/%m/%Y')
+
+
 dftype=pd.read_csv('./data/price_by_type_2023.csv')
 # Convert the 'Date' column to datetime format
 dftype['Date'] = pd.to_datetime(dftype['Date'], format='%d/%m/%Y')
@@ -48,12 +53,32 @@ data = pd.DataFrame({
 
 
 
-def search_data(area):
+def search_data_property_type(area):
     # Find the maximum date
     max_date = dftype['Date'].max()
 
     # Filter the rows with the maximum date and "Wales" as the Region_Name
     filtered_dftype = dftype[(dftype['Date'] == max_date) & (dftype['Region_Name'].str.lower() == area.lower())]
+    
+    return filtered_dftype
+
+
+def search_data_average(area):
+    # Find the maximum date
+    max_date = dfav['Date'].max()
+
+    # Filter the rows with the maximum date and "Wales" as the Region_Name
+    filtered_dftype = dfav[(dfav['Date'] == max_date) & (dfav['Region_Name'].str.lower() == area.lower())]
+    
+    return filtered_dftype
+
+
+def search_data_sales(area):
+    # Find the maximum date
+    max_date = dfsale['Date'].max()
+
+    # Filter the rows with the maximum date and "Wales" as the Region_Name
+    filtered_dftype = dfsale[(dfsale['Date'] == max_date) & (dfsale['Region_Name'].str.lower() == area.lower())]
     
     return filtered_dftype
 
@@ -71,7 +96,7 @@ def create_dataset(dataset, look_back=1):
 def predict_price(area):
     with st.spinner('Wait for Prediction...'):
         # Use 'Average_Price' for LSTM model
-        dfRegion=df[df['Region_Name'] == area]
+        dfRegion=df[df['Region_Name'].str.lower() == area.lower()]
         dataset = dfRegion['Average_Price'].values
         dataset = dataset.astype('float32')
 
@@ -160,7 +185,7 @@ def predict_price(area):
 def predict_price_overview(area):
     with st.spinner('Wait for Prediction...'):
         # Use 'Average_Price' for LSTM model
-        dfRegion=df[df['Region_Name'] == area]
+        dfRegion=df[df['Region_Name'].str.lower() == area.lower()]
         dataset = dfRegion['Average_Price'].values
         dataset = dataset.astype('float32')
 
@@ -272,7 +297,11 @@ if navigation == "Home":
     st.header("Search by Region Name")
     area = st.text_input("Enter the Region Name:")
     if st.button("Search") or area:
-        result = search_data(area)
+        result = search_data_property_type(area)
+        result_average = search_data_average(area)
+
+        result_sales = search_data_sales(area)
+
         if len(result) > 0:
             # # Display line graph
             # fig, ax = plt.subplots()
@@ -323,7 +352,7 @@ if navigation == "Home":
             """
 
             # Display in Streamlit using components
-            components.html(card_html, height=200)
+            components.html(card_html, height=140)
 
             # HTML2 with Inline CSS
             card_html2 = f"""
@@ -347,7 +376,37 @@ if navigation == "Home":
             """
 
             # Display in Streamlit using components
-            components.html(card_html2, height=200)
+            components.html(card_html2, height=140)
+
+            # HTML2 with Inline CSS
+            card_html3 = f"""
+            <div style='{flex_container_style}'>
+                <!-- Card 1 -->
+                <div style='{card_style}' onmouseover="this.style.boxShadow='0 8px 16px 0 rgba(0,0,0,0.2)';" onmouseout="this.style.boxShadow='0 4px 8px 0 rgba(0,0,0,0.2)';">
+                    <div style='{container_style}'>
+                        <h4><b>Average House Price</b></h4>
+                        <p>£{result_average['Average_Price'].mean()}</p>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div style='{card_style}' onmouseover="this.style.boxShadow='0 8px 16px 0 rgba(0,0,0,0.2)';" onmouseout="this.style.boxShadow='0 4px 8px 0 rgba(0,0,0,0.2)';">
+                    <div style='{container_style}'>
+                        <h4><b>Sales Amount</b></h4>
+                        <p>{result_sales['Sales_Volume'].mean()}</p>
+                    </div>
+                </div>
+            </div>
+            """
+
+            # Display in Streamlit using components
+            components.html(card_html3, height=140)
+
+
+            st.success(f"Price Data Revision Date: {result.iloc[0]['Date']}")
+            st.success(f"Sales Data Revision Date: {result_sales.iloc[0]['Date']}")
+            st.subheader(f"Region Name: {result.iloc[0]['Region_Name']}")
+
 
             #Making Prediction
             st.header(f"Prediction Making The Average Price in {result.iloc[0]['Region_Name']}")
@@ -357,10 +416,9 @@ if navigation == "Home":
 
 
 
-            st.write(f"Region Name: {result.iloc[0]['Region_Name']}")
             # date=str(result['Date'])
             # date= date[4:18]
-            st.success(f"Data Revision Date: {result.iloc[0]['Date']}")
+
 
             st.warning(f"Note: This Website is Only Suitable for Light Themes.")
           
