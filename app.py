@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
-from joblib import dump, load
+import pickle
 
 
 #pip3 install tensorflow-cpu --no-cache-dir
@@ -221,11 +221,13 @@ def predict_price_overview(area):
         # model.compile(loss='mean_squared_error', optimizer='adam')
         # model.fit(trainX, trainY, epochs=100, batch_size=1, verbose=2) # adjust epochs and batch_size as needed
 
-        # # Save the model
-        # dump(model, area+'_prediction.joblib') 
+        # # Saving model to disk
+        # with open(area+'_prediction.pkl', 'wb') as model_file:
+        #     pickle.dump(model, model_file)
 
-        # Load the model
-        model = load(area+'_prediction.joblib')
+        # To load model from disk
+        with open(area+'_prediction.pkl', 'rb') as model_file:
+            model = pickle.load(model_file)
         
         # Make predictions
         trainPredict = model.predict(trainX)
