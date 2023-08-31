@@ -441,14 +441,14 @@ elif navigation == "Overview of Housing Market":
     ##-----Bank Interest Line Graph
     # Filter the data for the last 20 years
     # Convert the 'Date' column to datetime
-    st.header("Interest Rate Over the Last 20 Years")
+    st.header("Interest Rates Throughout the Year")
     dfinterest['Date'] = pd.to_datetime(dfinterest['Date'])
     df_last_20_years = dfinterest[dfinterest['Date'].dt.year >= 1983]
 
     # Plot the data
     fig, ax = plt.subplots(figsize=(15, 6))
     ax.plot(df_last_20_years['Date'], df_last_20_years['New_rate'], marker='o', linestyle='-')
-    ax.set_title('Interest Rate Over the Last 20 Years')
+    ax.set_title('Interest Rate Vs Year')
     ax.set_xlabel('Date')
     ax.set_ylabel('Rate')
 
