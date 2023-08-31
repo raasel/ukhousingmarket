@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
-import pickle
+from tensorflow.keras.models import load_model
 
 
 #pip3 install tensorflow-cpu --no-cache-dir
@@ -221,13 +221,11 @@ def predict_price_overview(area):
         # model.compile(loss='mean_squared_error', optimizer='adam')
         # model.fit(trainX, trainY, epochs=100, batch_size=1, verbose=2) # adjust epochs and batch_size as needed
 
-        # # Saving model to disk
-        # with open(area+'_prediction.pkl', 'wb') as model_file:
-        #     pickle.dump(model, model_file)
+        # # Saving the model
+        # model.save(area+"_model", save_format='tf')
 
-        # To load model from disk
-        with open(area+'_prediction.pkl', 'rb') as model_file:
-            model = pickle.load(model_file)
+        model = load_model(area+"_model")
+
         
         # Make predictions
         trainPredict = model.predict(trainX)
@@ -537,14 +535,14 @@ elif navigation == "Overview of Housing Market":
     st.header(f"Prediction of The Average Price in England")
     predict_price_overview("England")
     ###-----------End
-    ##-----------Prediction of Wales House Price
-    st.header(f"Prediction of The Average Price in Wales")
-    predict_price_overview("Wales")
-    ###-----------End
-    ##-----------Prediction of Scotland House Price
-    st.header(f"Prediction of The Average Price in Scotland")
-    predict_price_overview("Scotland")
-    ###-----------End
+    # ##-----------Prediction of Wales House Price
+    # st.header(f"Prediction of The Average Price in Wales")
+    # predict_price_overview("Wales")
+    # ###-----------End
+    # ##-----------Prediction of Scotland House Price
+    # st.header(f"Prediction of The Average Price in Scotland")
+    # predict_price_overview("Scotland")
+    # ###-----------End
 
 
 
