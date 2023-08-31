@@ -535,14 +535,14 @@ elif navigation == "Overview of Housing Market":
     st.header(f"Prediction of The Average Price in England")
     predict_price_overview("England")
     ###-----------End
-    # ##-----------Prediction of Wales House Price
-    # st.header(f"Prediction of The Average Price in Wales")
-    # predict_price_overview("Wales")
-    # ###-----------End
-    # ##-----------Prediction of Scotland House Price
-    # st.header(f"Prediction of The Average Price in Scotland")
-    # predict_price_overview("Scotland")
-    # ###-----------End
+    ##-----------Prediction of Wales House Price
+    st.header(f"Prediction of The Average Price in Wales")
+    predict_price_overview("Wales")
+    ###-----------End
+    ##-----------Prediction of Scotland House Price
+    st.header(f"Prediction of The Average Price in Scotland")
+    predict_price_overview("Scotland")
+    ###-----------End
 
 
 
