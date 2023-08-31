@@ -4,4 +4,3 @@ scikit-learn
 tensorflow
 streamlit
 matplotlib
-joblib
