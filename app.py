@@ -97,192 +97,154 @@ def create_dataset(dataset, look_back=1):
 def predict_price(area):
     with st.spinner('Wait for Prediction...'):
         # Use 'Average_Price' for LSTM model
-        dfRegion=df[df['Region_Name'].str.lower() == area.lower()]
-        dataset = dfRegion['Average_Price'].values
-        dataset = dataset.astype('float32')
-
-        # Reshape to be [samples, time steps, features]
-        dataset = np.reshape(dataset, (-1, 1))
-
-        # Normalize the dataset
+        df_england=dfav[dfav['Region_Name'].str.lower() == area.lower()]
+        # Use only the 'Average_Price' column and normalize the values
         scaler = MinMaxScaler(feature_range=(0, 1))
-        dataset = scaler.fit_transform(dataset)
+        scaled_data = scaler.fit_transform(df_england[['Average_Price']])
 
-        # Let's use 80% data for training and 30% for testing
-        train_size = int(len(dataset) * 0.8)
-        test_size = len(dataset) - train_size
+        # Prepare the dataset for LSTM
+        X, y = [], []
+        for i in range(1, len(scaled_data)):
+            X.append(scaled_data[i-1:i])
+            y.append(scaled_data[i])
 
-        train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
+        X, y = np.array(X), np.array(y)
 
-
-
-        # Use look_back to decide the number of previous time steps to use as input variables to predict the next time period
-        look_back = 1
-        trainX, trainY = create_dataset(train, look_back)
-        testX, testY = create_dataset(test, look_back)
-
-        # Reshape input to be [samples, time steps, features]
-        trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
-        testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
-
-        # Create and fit the LSTM network
+        # Build the LSTM model
         model = Sequential()
-        model.add(LSTM(4, input_shape=(1, look_back))) # 4 is the number of neurons, you can change it as you want
-        model.add(Dense(1)) # output layer
-        model.compile(loss='mean_squared_error', optimizer='adam')
-        model.fit(trainX, trainY, epochs=100, batch_size=1, verbose=2) # adjust epochs and batch_size as needed
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+        model.add(LSTM(units=50))
+        model.add(Dense(units=1))
 
-        # Make predictions
-        trainPredict = model.predict(trainX)
-        testPredict = model.predict(testX)
+        model.compile(optimizer='adam', loss='mean_squared_error')
 
-        # Invert predictions back to normal values
-        trainPredict = scaler.inverse_transform(trainPredict)
-        trainY = scaler.inverse_transform([trainY])
-        testPredict = scaler.inverse_transform(testPredict)
-        testY = scaler.inverse_transform([testY])
+        # Train the model
+        model.fit(X, y, epochs=100, batch_size=5)
 
-        # Shift train predictions for plotting
-        trainPredictPlot = np.empty_like(dataset)
-        trainPredictPlot[:, :] = np.nan
-        trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
+        # Generate future dates (10 years ahead, annual data)
+        future_years = 10
 
-        # Shift test predictions for plotting
-        testPredictPlot = np.empty_like(dataset)
-        testPredictPlot[:, :] = np.nan
-        testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
+        # Initialize the future prediction array
+        future_predictions = []
 
-        dates = dfRegion.index.to_numpy() # assuming the 'Date' is your index
+        # Use the last data point to make the first prediction, then use the prediction for subsequent ones
+        current_input = np.array([scaled_data[-1]])
 
-        # plt.figure(figsize=(15, 8))
+        for i in range(future_years):
+            prediction = model.predict(current_input.reshape(1, 1, 1))
+            future_predictions.append(prediction)
+            current_input = prediction
 
-        plt.plot(dates, scaler.inverse_transform(dataset), label='Original Data')
-        plt.plot(dates, trainPredictPlot, label='Train Prediction')
-        plt.plot(dates, testPredictPlot, label='Test Prediction')
+        # Inverse transform the scaled data back to original scale
+        future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
 
-        # Adjusting for better date format
-        locator = AutoDateLocator()
-        formatter = AutoDateFormatter(locator)
-        plt.gca().xaxis.set_major_locator(locator)
-        plt.gca().xaxis.set_major_formatter(formatter)
+        # Generate future dates
+        future_dates = pd.date_range(start='2023-07-01', end='2033-06-01', freq='A')
 
-        plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right", fontsize=10)
+        # Create a DataFrame for future predictions
+        df_future = pd.DataFrame({
+            'Date': future_dates,
+            'Region_Name': ['England'] * future_years,
+            'Average_Price': future_predictions.flatten()
+        })
 
+        # Plotting
+        plt.figure(figsize=(10, 5))
+        plt.plot(df_england['Date'], df_england['Average_Price'], label='Existing Data', marker='o')
+        plt.plot(df_future['Date'], df_future['Average_Price'], label='LSTM Predictions', linestyle='--', marker='x')
+        plt.xlabel('Year')
+        plt.ylabel('Average Price')
+        plt.title(f'Average House Price in {area.upper()} (Existing and LSTM 10 Year Predictions)')
         plt.legend()
-        plt.title("Housing Market Predictions from 1969 to 2023")
-        plt.subplots_adjust(bottom=0.2)
-        plt.tight_layout()
         st.pyplot(plt)
 
 
-        # Calculate root mean squared error
-        trainScore = np.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
-        print('Train Score: %.2f RMSE' % (trainScore))
-        st.write('Train Score: %.2f RMSE' % (trainScore))
-        testScore = np.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
-        print('Test Score: %.2f RMSE' % (testScore))
-        st.write('Test Score: %.2f RMSE' % (testScore))
+       
 
 def predict_price_overview(area):
     with st.spinner('Wait for Prediction...'):
         # Use 'Average_Price' for LSTM model
-        dfRegion=df[df['Region_Name'].str.lower() == area.lower()]
-        dataset = dfRegion['Average_Price'].values
-        dataset = dataset.astype('float32')
-
-        # Reshape to be [samples, time steps, features]
-        dataset = np.reshape(dataset, (-1, 1))
-
-        # Normalize the dataset
+        df_england=dfav[dfav['Region_Name'].str.lower() == area.lower()]
+        # Use only the 'Average_Price' column and normalize the values
         scaler = MinMaxScaler(feature_range=(0, 1))
-        dataset = scaler.fit_transform(dataset)
+        scaled_data = scaler.fit_transform(df_england[['Average_Price']])
 
-        # Let's use 80% data for training and 30% for testing
-        train_size = int(len(dataset) * 0.8)
-        test_size = len(dataset) - train_size
+        # Prepare the dataset for LSTM
+        X, y = [], []
+        for i in range(1, len(scaled_data)):
+            X.append(scaled_data[i-1:i])
+            y.append(scaled_data[i])
 
-        train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
+        X, y = np.array(X), np.array(y)
 
-
-
-        # Use look_back to decide the number of previous time steps to use as input variables to predict the next time period
-        look_back = 1
-        trainX, trainY = create_dataset(train, look_back)
-        testX, testY = create_dataset(test, look_back)
-
-        # Reshape input to be [samples, time steps, features]
-        trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
-        testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
-
-        # # Create and fit the LSTM network
+        # # Build the LSTM model
         # model = Sequential()
-        # model.add(LSTM(4, input_shape=(1, look_back))) # 4 is the number of neurons, you can change it as you want
-        # model.add(Dense(1)) # output layer
-        # model.compile(loss='mean_squared_error', optimizer='adam')
-        # model.fit(trainX, trainY, epochs=100, batch_size=1, verbose=2) # adjust epochs and batch_size as needed
+        # model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+        # model.add(LSTM(units=50))
+        # model.add(Dense(units=1))
+
+        # model.compile(optimizer='adam', loss='mean_squared_error')
+
+        # # Train the model
+        # model.fit(X, y, epochs=100, batch_size=5)
 
         # # Saving the model
         # model.save(area+"_model", save_format='tf')
 
+
+        # # import the model
         model = load_model(area+"_model")
 
-        
-        # Make predictions
-        trainPredict = model.predict(trainX)
-        testPredict = model.predict(testX)
+        # Generate future dates (10 years ahead, annual data)
+        future_years = 10
 
-        # Invert predictions back to normal values
-        trainPredict = scaler.inverse_transform(trainPredict)
-        trainY = scaler.inverse_transform([trainY])
-        testPredict = scaler.inverse_transform(testPredict)
-        testY = scaler.inverse_transform([testY])
+        # Initialize the future prediction array
+        future_predictions = []
 
-        # Shift train predictions for plotting
-        trainPredictPlot = np.empty_like(dataset)
-        trainPredictPlot[:, :] = np.nan
-        trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
+        # Use the last data point to make the first prediction, then use the prediction for subsequent ones
+        current_input = np.array([scaled_data[-1]])
 
-        # Shift test predictions for plotting
-        testPredictPlot = np.empty_like(dataset)
-        testPredictPlot[:, :] = np.nan
-        testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
+        for i in range(future_years):
+            prediction = model.predict(current_input.reshape(1, 1, 1))
+            future_predictions.append(prediction)
+            current_input = prediction
 
-        dates = dfRegion.index.to_numpy() # assuming the 'Date' is your index
+        # Inverse transform the scaled data back to original scale
+        future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
 
-        plt.figure(figsize=(15, 8))
+        # Generate future dates
+        future_dates = pd.date_range(start='2023-07-01', end='2033-06-01', freq='A')
 
-        plt.plot(dates, scaler.inverse_transform(dataset), label='Original Data')
-        plt.plot(dates, trainPredictPlot, label='Train Prediction')
-        plt.plot(dates, testPredictPlot, label='Test Prediction')
+        # Create a DataFrame for future predictions
+        df_future = pd.DataFrame({
+            'Date': future_dates,
+            'Region_Name': ['England'] * future_years,
+            'Average_Price': future_predictions.flatten()
+        })
 
-        # Adjusting for better date format
-        locator = AutoDateLocator()
-        formatter = AutoDateFormatter(locator)
-        plt.gca().xaxis.set_major_locator(locator)
-        plt.gca().xaxis.set_major_formatter(formatter)
-
-        plt.setp(plt.gca().get_xticklabels(), rotation=45, ha="right", fontsize=10)
-
+        # Plotting
+        plt.figure(figsize=(10, 5))
+        plt.plot(df_england['Date'], df_england['Average_Price'], label='Existing Data', marker='o')
+        plt.plot(df_future['Date'], df_future['Average_Price'], label='LSTM Predictions', linestyle='--', marker='x')
+        plt.xlabel('Year')
+        plt.ylabel('Average Price')
+        plt.title(f'Average House Price in {area} (Existing and LSTM 10 Year Predictions)')
         plt.legend()
-        plt.title("Housing Market Predictions from 1969 to 2023")
-        plt.subplots_adjust(bottom=0.2)
-        plt.tight_layout()
         st.pyplot(plt)
+ 
+       
 
+        
 
-        # Calculate root mean squared error
-        trainScore = np.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
-        print('Train Score: %.2f RMSE' % (trainScore))
-        st.write('Train Score: %.2f RMSE' % (trainScore))
-        testScore = np.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
-        print('Test Score: %.2f RMSE' % (testScore))
-        st.write('Test Score: %.2f RMSE' % (testScore))
 
 
 
 
     # return prediction
 
+
+
+st.image("logo/logousw.jpg", width=100)
 
 # Navigation
 st.title("UK HOUSING MARKET")
