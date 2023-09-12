@@ -14,7 +14,17 @@ from tensorflow.keras.models import load_model
 
 
 #pip3 install tensorflow-cpu --no-cache-dir
+################## Menu Hide #################
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
+########## END #############
 
 #--------Data import
 df=pd.read_csv('./data/average_price_2023.csv')
